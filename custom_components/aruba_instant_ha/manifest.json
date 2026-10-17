@@ -1,0 +1,13 @@
+{
+  "domain": "aruba_instant_ha",
+  "name": "Aruba Instant",
+  "codeowners": ["@ngoviet"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/ngoviet/aruba_instant_ha",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/ngoviet/aruba_instant_ha/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

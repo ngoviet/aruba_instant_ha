@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aruba Instant",
+        "description": "Nhập IP của các AP trong cụm, cách nhau bằng dấu phẩy — integration tự tìm AP master. Dùng tài khoản quản trị của giao diện web Instant (không cần bật REST API).",
+        "data": {
+          "hosts": "IP các AP",
+          "port": "Cổng",
+          "verify_ssl": "Kiểm tra chứng chỉ SSL",
+          "username": "Tên đăng nhập",
+          "password": "Mật khẩu"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Đăng nhập lại Aruba Instant",
+        "description": "Cụm {hosts} không còn chấp nhận thông tin đăng nhập.",
+        "data": {
+          "username": "Tên đăng nhập",
+          "password": "Mật khẩu"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Sai tên đăng nhập hoặc mật khẩu",
+      "cannot_connect": "Không kết nối được, hoặc không AP nào là master của cụm",
+      "no_hosts": "Cần ít nhất một IP",
+      "unknown": "Lỗi không xác định"
+    },
+    "abort": {
+      "already_configured": "Cụm này đã được thêm",
+      "reauth_successful": "Đăng nhập lại thành công"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tuỳ chọn Aruba Instant",
+        "data": {
+          "scan_interval": "Chu kỳ cập nhật (giây)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "wifi_clients": {
+        "name": "Thiết bị Wi-Fi"
+      },
+      "ap_clients": {
+        "name": "Thiết bị"
+      },
+      "utilization_2_4": {
+        "name": "Tải kênh 2,4 GHz"
+      },
+      "utilization_5": {
+        "name": "Tải kênh 5 GHz"
+      }
+    }
+  }
+}

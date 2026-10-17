@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aruba Instant",
+        "description": "Enter the IP addresses of the APs in the cluster, comma-separated — the integration finds the master AP. Use the Instant web UI admin account (the REST API does not need to be enabled).",
+        "data": {
+          "hosts": "AP addresses",
+          "port": "Port",
+          "verify_ssl": "Verify SSL certificate",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Aruba Instant",
+        "description": "The credentials for {hosts} are no longer accepted.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid username or password",
+      "cannot_connect": "Cannot connect, or none of the APs is the cluster master",
+      "no_hosts": "Enter at least one address",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Cluster already configured",
+      "reauth_successful": "Re-authentication successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Aruba Instant options",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "wifi_clients": {
+        "name": "Clients"
+      },
+      "ap_clients": {
+        "name": "Clients"
+      },
+      "utilization_2_4": {
+        "name": "2.4 GHz utilization"
+      },
+      "utilization_5": {
+        "name": "5 GHz utilization"
+      }
+    }
+  }
+}
