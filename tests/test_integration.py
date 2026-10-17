@@ -110,10 +110,10 @@ async def test_config_flow_finds_master(hass: HomeAssistant, cluster):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "NhaTest"
     assert result["result"].unique_id == "nhatest"
-    # thử member trước (đăng nhập được nhưng 0 AP) rồi mới tới master; phiên đều được trả
+    # thử member trước (đăng nhập được nhưng 0 AP) rồi mới tới master; phiên thử của
+    # bước kiểm tra đều được trả (entry vừa tạo tự nạp và giữ 1 phiên riêng — đúng thiết kế)
     assert cluster.logins[:2] == [MEMBER, MASTER]
-    assert MEMBER in cluster.logouts and MASTER in cluster.logouts
-    assert not cluster.sessions
+    assert cluster.logouts[:2] == [MEMBER, MASTER]
 
 
 async def test_config_flow_invalid_auth(hass: HomeAssistant, cluster):
