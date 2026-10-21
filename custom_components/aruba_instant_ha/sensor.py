@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -24,6 +25,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
+    # Đăng ký device cụm trước: AP trỏ về nó bằng `via_device_id` (id registry) —
+    # tuple `via_device` bị HA đánh dấu bỏ, gỡ hẳn ở 2027.8.
+    hub_id = (
+        dr.async_get(hass)
+        .async_get_or_create(config_entry_id=entry.entry_id, **_hub_device(coordinator))
+        .id
+    )
     async_add_entities([WifiClientsSensor(coordinator)])
 
     known: set[str] = set()
@@ -34,9 +42,10 @@ async def async_setup_entry(
         known.update(new)
         entities: list[SensorEntity] = []
         for name in new:
-            entities.append(ApClientsSensor(coordinator, name))
+            entities.append(ApClientsSensor(coordinator, name, hub_id))
             entities.extend(
-                ApUtilizationSensor(coordinator, name, band) for band in ("2.4", "5")
+                ApUtilizationSensor(coordinator, name, band, hub_id)
+                for band in ("2.4", "5")
             )
         if entities:
             async_add_entities(entities)
@@ -106,7 +115,9 @@ class WifiClientsSensor(CoordinatorEntity[ArubaCoordinator], SensorEntity):
 class _ApEntity(CoordinatorEntity[ArubaCoordinator], SensorEntity):
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: ArubaCoordinator, ap_name: str, key: str) -> None:
+    def __init__(
+        self, coordinator: ArubaCoordinator, ap_name: str, key: str, hub_id: str
+    ) -> None:
         super().__init__(coordinator)
         self._ap = ap_name
         ap = coordinator.data.aps[ap_name]
@@ -118,7 +129,7 @@ class _ApEntity(CoordinatorEntity[ArubaCoordinator], SensorEntity):
             manufacturer=MANUFACTURER,
             model=f"IAP-{ap.model.split('(')[0]}" if ap.model else None,
             serial_number=ap.serial,
-            via_device=(DOMAIN, coordinator.cluster_id),
+            via_device_id=hub_id,
             configuration_url=coordinator.api.web_url(ap.ip),
         )
 
@@ -132,8 +143,8 @@ class ApClientsSensor(_ApEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:access-point"
 
-    def __init__(self, coordinator: ArubaCoordinator, ap_name: str) -> None:
-        super().__init__(coordinator, ap_name, "clients")
+    def __init__(self, coordinator: ArubaCoordinator, ap_name: str, hub_id: str) -> None:
+        super().__init__(coordinator, ap_name, "clients", hub_id)
 
     @property
     def native_value(self) -> int | None:
@@ -148,9 +159,11 @@ class ApUtilizationSensor(_ApEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:chart-donut"
 
-    def __init__(self, coordinator: ArubaCoordinator, ap_name: str, band: str) -> None:
+    def __init__(
+        self, coordinator: ArubaCoordinator, ap_name: str, band: str, hub_id: str
+    ) -> None:
         key = "utilization_2_4" if band == "2.4" else "utilization_5"
-        super().__init__(coordinator, ap_name, key)
+        super().__init__(coordinator, ap_name, key, hub_id)
         self._band = band
         self._attr_translation_key = key
 
