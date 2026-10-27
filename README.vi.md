@@ -1,9 +1,24 @@
 # Aruba Instant cho Home Assistant
 
+<!-- readme-axi type=ha -->
+
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![GitHub release](https://img.shields.io/github/v/release/ngoviet/aruba_instant_ha)](https://github.com/ngoviet/aruba_instant_ha/releases)
+[![Validate](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/validate.yml/badge.svg)](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/validate.yml)
+[![Test](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/test.yml/badge.svg)](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/github/license/ngoviet/aruba_instant_ha)](LICENSE)
+
 [English](README.md) · **Tiếng Việt**
 
 Xem mọi thiết bị Wi-Fi của cụm **Aruba Instant** (IAP) ngay trong Home Assistant: đang bắt AP nào, sóng, băng
 tần, SSID, tốc độ PHY. Kèm số thiết bị và độ chiếm kênh của từng AP.
+
+[![Mở Home Assistant của bạn và mở một kho trong Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ngoviet&repository=aruba_instant_ha&category=integration)
+
+> 🇻🇳 Dự án do một người Việt tự xây dựng và duy trì — nếu nó giúp ích cho bạn, hãy
+> [ủng hộ dự án](#ủng-hộ-dự-án).
+
+## Tính năng
 
 - Đọc đúng API mà giao diện web Instant đang dùng (`https://<ap>:4343/swarm.cgi`) — **không cần bật REST API**,
   không sửa gì trên cụm (chỉ đọc).
@@ -14,7 +29,9 @@ tần, SSID, tốc độ PHY. Kèm số thiết bị và độ chiếm kênh c�
   DHCP lease** trên router MikroTik thay cho hostname Wi-Fi kiểu `wlan0`, `espressif`.
 - Không thư viện ngoài, cài bằng giao diện, đăng nhập lại, tuỳ chọn, diagnostics, giao diện Anh + Việt.
 
-> Đã chạy trên cụm 3 × **IAP-335**, Instant 8.x. Cần **Home Assistant 2026.9** trở lên.
+## Thiết bị hỗ trợ
+
+Đã chạy trên cụm 3 × **IAP-335**, Instant 8.x. Cần **Home Assistant 2026.9** trở lên.
 
 ## Cài đặt
 
@@ -23,7 +40,7 @@ tần, SSID, tốc độ PHY. Kèm số thiết bị và độ chiếm kênh c�
 
 **Cài tay**: chép `custom_components/aruba_instant_ha` vào `/config/custom_components/` rồi khởi động lại.
 
-## Thiết lập
+## Cấu hình
 
 **Cài đặt → Thiết bị & Dịch vụ → Thêm integration → Aruba Instant**
 
@@ -36,7 +53,7 @@ tần, SSID, tốc độ PHY. Kèm số thiết bị và độ chiếm kênh c�
 
 Tuỳ chọn: chu kỳ cập nhật (mặc định 60 s, 30–600 s).
 
-## Entity
+## Thực thể
 
 | Entity | Loại | Ghi chú |
 |---|---|---|
@@ -50,6 +67,17 @@ Mỗi mục trong `clients`: `name` (comment DHCP lease nếu có, không thì h
 
 Card hiển thị danh sách này đi kèm [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
 (`custom:lan-wifi-card`).
+
+## Xử lý sự cố
+
+- **Chỉ thấy một phần thiết bị** — AP thành viên chỉ thấy client của chính nó; integration cần với tới AP master
+  của cụm. Khai báo đủ các AP trong *IP các AP* để nó tự chuyển theo khi đổi master.
+- **Lỗi SSL** — giao diện web Instant mặc định dùng chứng chỉ tự ký; để tắt *Kiểm tra chứng chỉ SSL*.
+- **Tên thiết bị kiểu `wlan0`, `espressif`** — đó là hostname Wi-Fi; cài
+  [routeros_ha](https://github.com/ngoviet/routeros_ha) để lấy comment DHCP lease trên router MikroTik.
+- **Phiên quản trị** — Instant giới hạn số phiên quản trị; integration dùng lại một phiên và đăng xuất khi gỡ.
+- Khi báo lỗi, đính kèm **diagnostics** của integration (*Thiết bị & Dịch vụ → Aruba Instant → ⋮ → Tải xuống
+  chẩn đoán*).
 
 ## Phát triển
 
@@ -77,9 +105,10 @@ Test chạy trên Linux (Home Assistant không chạy trên Windows).
   <img src="https://raw.githubusercontent.com/ngoviet/.github/main/assets/support/vietqr-card.svg" width="300" alt="VietQR — MB Bank — NGO DUC VIET — 911051212">
 </p>
 
-<p align="center"><sub>🇻🇳 VietQR: quét bằng app ngân hàng bất kỳ, nội dung <code>Ung ho aruba_instant_ha</code>. Cảm ơn bạn! · Thank you for keeping this project alive.</sub></p>
+<p align="center"><sub>🇻🇳 VietQR: quét bằng app ngân hàng bất kỳ, nội dung <code>Ung ho aruba_instant_ha</code>. Cảm ơn bạn đã giúp dự án tiếp tục phát triển!</sub></p>
+<p align="center"><sub>Tiền mã hoá (mạng BEP20): <code>0x57f07d44fb581cddc028a0c67d63a8cc05aa6caa</code> · USDT · USDC · BNB · ETH · BTC</sub></p>
 <!-- support:end -->
 
 ## Giấy phép
 
-MIT © ngoviet. Không liên quan tới Aruba / HPE; icon là thiết kế riêng.
+[MIT](LICENSE) © Ngô Đức Việt. Không liên kết với HPE Aruba Networking; icon là thiết kế riêng.

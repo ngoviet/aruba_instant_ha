@@ -1,13 +1,24 @@
 # Aruba Instant for Home Assistant
 
+<!-- readme-axi type=ha -->
+
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![GitHub release](https://img.shields.io/github/v/release/ngoviet/aruba_instant_ha)](https://github.com/ngoviet/aruba_instant_ha/releases)
 [![Validate](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/validate.yml/badge.svg)](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/validate.yml)
 [![Test](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/test.yml/badge.svg)](https://github.com/ngoviet/aruba_instant_ha/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/github/license/ngoviet/aruba_instant_ha)](LICENSE)
 
 **English** · [Tiếng Việt](README.vi.md)
 
 See every Wi-Fi device of an **Aruba Instant** (IAP) cluster in Home Assistant: which access point it is on,
 signal, band, SSID, PHY speed. Also the client count and channel utilization of each AP.
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ngoviet&repository=aruba_instant_ha&category=integration)
+
+> 🇻🇳 Built and maintained by one person in Việt Nam — if it saves you time, please
+> [support the project](#support-the-project).
+
+## Features
 
 - Reads the same API the Instant web UI uses (`https://<ap>:4343/swarm.cgi`) — **the REST API does not need to
   be enabled** and nothing is changed on the cluster (read-only).
@@ -18,16 +29,18 @@ signal, band, SSID, PHY speed. Also the client count and channel utilization of 
   **DHCP lease comments** on your MikroTik router instead of Wi-Fi host names like `wlan0` or `espressif`.
 - No extra dependencies, UI setup, re-authentication, options, diagnostics, English and Vietnamese UI.
 
-> Tested on a cluster of 3 × **IAP-335**, Instant 8.x. Requires **Home Assistant 2026.9** or newer.
+## Supported devices
 
-## Install
+Tested on a cluster of 3 × **IAP-335**, Instant 8.x. Requires **Home Assistant 2026.9** or newer.
+
+## Installation
 
 **HACS**: HACS → ⋮ → *Custom repositories* → `https://github.com/ngoviet/aruba_instant_ha`, type
 *Integration* → install **Aruba Instant** → restart Home Assistant.
 
 **Manual**: copy `custom_components/aruba_instant_ha` into `/config/custom_components/` and restart.
 
-## Setup
+## Configuration
 
 **Settings → Devices & services → Add integration → Aruba Instant**
 
@@ -55,6 +68,18 @@ Each item of `clients`: `name` (DHCP lease comment if available, else host name)
 A dashboard card for this list ships with [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
 (`custom:lan-wifi-card`).
 
+## Troubleshooting
+
+- **Only part of the clients show up** — member APs only see their own clients; the integration needs to reach
+  the cluster master. List all APs in *AP addresses* so it can follow a master change.
+- **SSL errors** — the Instant web UI uses a self-signed certificate by default; leave *Verify SSL certificate* off.
+- **Device names look like `wlan0` or `espressif`** — those are Wi-Fi host names; install
+  [routeros_ha](https://github.com/ngoviet/routeros_ha) to use the DHCP lease comments from your MikroTik router.
+- **Admin sessions** — Instant limits the number of admin sessions; the integration reuses one session and logs
+  out on unload.
+- When reporting an issue, attach the integration's **diagnostics** (*Devices & services → Aruba Instant → ⋮ →
+  Download diagnostics*).
+
 ## Development
 
 ```bash
@@ -81,9 +106,10 @@ Tests run on Linux (Home Assistant does not run on Windows).
   <img src="https://raw.githubusercontent.com/ngoviet/.github/main/assets/support/vietqr-card.svg" width="300" alt="VietQR — MB Bank — NGO DUC VIET — 911051212">
 </p>
 
-<p align="center"><sub>🇻🇳 VietQR: quét bằng app ngân hàng bất kỳ, nội dung <code>Ung ho aruba_instant_ha</code>. Cảm ơn bạn! · Thank you for keeping this project alive.</sub></p>
+<p align="center"><sub>🇻🇳 VietQR: scan with any Vietnamese banking app, transfer note <code>Ung ho aruba_instant_ha</code>. Thank you for keeping this project alive!</sub></p>
+<p align="center"><sub>Crypto (BEP20 network): <code>0x57f07d44fb581cddc028a0c67d63a8cc05aa6caa</code> · USDT · USDC · BNB · ETH · BTC</sub></p>
 <!-- support:end -->
 
 ## License
 
-MIT © ngoviet. Not affiliated with Aruba / HPE; the icon is an original design.
+[MIT](LICENSE) © Ngô Đức Việt. Not affiliated with HPE Aruba Networking; the icon is an original design.
