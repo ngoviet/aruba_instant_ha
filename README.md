@@ -107,7 +107,7 @@ Tests run on Linux (Home Assistant does not run on Windows).
 </p>
 
 <p align="center"><sub>🇻🇳 VietQR: scan with any Vietnamese banking app, transfer note <code>Ung ho aruba_instant_ha</code>. Thank you for keeping this project alive!</sub></p>
-<p align="center"><sub>Crypto (BEP20 network): <code>0x57f07d44fb581cddc028a0c67d63a8cc05aa6caa</code> · USDT · USDC · BNB · ETH · BTC</sub></p>
+<p align="center"><sub>Crypto (BEP20 network): <code>0xcbf0402b232cb24b4d998f09a4884f87b5f74750</code> · USDT · USDC · BNB · ETH · BTC</sub></p>
 <!-- support:end -->
 
 ## License
