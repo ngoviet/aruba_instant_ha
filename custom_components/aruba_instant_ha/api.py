@@ -173,14 +173,17 @@ class ArubaInstantApi:
     ) -> dict[str, Table]:
         return parse_show(await self._show_raw(host, sid, commands), commands)
 
-    async def _show_raw(self, host: str, sid: str, commands: list[str]) -> str:
+    async def _show_raw(
+        self, host: str, sid: str, commands: list[str], ip: str = "127.0.0.1"
+    ) -> str:
         text = await self._call(
             host,
             "GET",
             {
                 "opcode": "show",
                 "cmd": "\n".join(commands),
-                "ip": "127.0.0.1",
+                # 127.0.0.1 = chạy trên master; IP một AP thành viên = master chuyển lệnh tới AP đó.
+                "ip": ip,
                 "refresh": "false",
                 "sid": sid,
             },
@@ -237,6 +240,25 @@ class ArubaInstantApi:
         await self.connect()
         assert self.host and self._sid
         return await self._show_on(self.host, self._sid, cmds)
+
+    async def show_ap_raw(self, ip: str, commands: list[str] | tuple[str, ...]) -> str:
+        """Lệnh `show ap …` chạy trên AP `ip` qua phiên của master (giao diện web làm y vậy).
+
+        Trả XML thô để `detail.parse_outputs` đọc cả bảng lẫn `<data>` theo từng `<output>`
+        (`show ap-env` chỉ có `<data>`). Chỉ gửi lệnh `show`.
+        """
+        cmds = list(commands)
+        if any(not c.startswith("show ") for c in cmds):
+            raise ArubaApiError("chỉ được gửi lệnh show")
+        if not (self.host and self._sid):
+            await self.connect()
+        assert self.host and self._sid
+        try:
+            return await self._show_raw(self.host, self._sid, cmds, ip=ip)
+        except ArubaSessionExpired:
+            await self.connect()
+            assert self.host and self._sid
+            return await self._show_raw(self.host, self._sid, cmds, ip=ip)
 
     async def cluster_name(self) -> str | None:
         """Tên cụm Instant (`show summary` → Name), dùng làm tên + unique id của entry."""

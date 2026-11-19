@@ -74,7 +74,9 @@ class WifiClientsSensor(CoordinatorEntity[ArubaCoordinator], SensorEntity):
     _attr_translation_key = "wifi_clients"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:wifi"
-    _unrecorded_attributes = frozenset({"clients", "ssids", "aps"})
+    _unrecorded_attributes = frozenset(
+        {"clients", "ssids", "aps", "alerts", "detail_updated"}
+    )
 
     def __init__(self, coordinator: ArubaCoordinator) -> None:
         super().__init__(coordinator)
@@ -88,28 +90,44 @@ class WifiClientsSensor(CoordinatorEntity[ArubaCoordinator], SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data
-        return {
-            "clients": [c.as_dict() for c in data.clients],
+        # Chi tiết 5 phút (tuỳ chọn): CHỈ THÊM khoá mới, không đổi khoá cũ ⇒ card cũ vẫn chạy.
+        det = data.detail
+        dc = det.clients if det else {}
+        da = det.aps if det else {}
+
+        def ap_attrs(ap) -> dict[str, Any]:
+            extra = da.get(ap.name, {})
+            radios_extra = extra.get("radios", {})
+            out = {
+                "ip": ap.ip,
+                "clients": ap.clients,
+                "radios": [
+                    {
+                        "band": r.band,
+                        "channel": r.channel,
+                        "power_dbm": r.power_dbm,
+                        "utilization": r.utilization,
+                        "noise_dbm": r.noise_dbm,
+                        **radios_extra.get(r.band or "", {}),
+                    }
+                    for r in ap.radios
+                ],
+            }
+            for key in ("uptime_s", "stale"):
+                if key in extra:
+                    out[key] = extra[key]
+            return out
+
+        attrs: dict[str, Any] = {
+            "clients": [{**c.as_dict(), **dc.get(c.mac, {})} for c in data.clients],
             "ssids": data.ssids(),
-            "aps": {
-                ap.name: {
-                    "ip": ap.ip,
-                    "clients": ap.clients,
-                    "radios": [
-                        {
-                            "band": r.band,
-                            "channel": r.channel,
-                            "power_dbm": r.power_dbm,
-                            "utilization": r.utilization,
-                            "noise_dbm": r.noise_dbm,
-                        }
-                        for r in ap.radios
-                    ],
-                }
-                for ap in data.aps.values()
-            },
+            "aps": {ap.name: ap_attrs(ap) for ap in data.aps.values()},
             "conductor": self.coordinator.api.host,
         }
+        if det:
+            attrs["alerts"] = det.alerts
+            attrs["detail_updated"] = data.detail_updated
+        return attrs
 
 
 class _ApEntity(CoordinatorEntity[ArubaCoordinator], SensorEntity):
@@ -143,7 +161,9 @@ class ApClientsSensor(_ApEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:access-point"
 
-    def __init__(self, coordinator: ArubaCoordinator, ap_name: str, hub_id: str) -> None:
+    def __init__(
+        self, coordinator: ArubaCoordinator, ap_name: str, hub_id: str
+    ) -> None:
         super().__init__(coordinator, ap_name, "clients", hub_id)
 
     @property
