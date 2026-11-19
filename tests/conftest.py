@@ -60,6 +60,55 @@ def _table(name: str, header: list[str], rows: list[list[str]]) -> str:
     return f'<t tn="{name}" nc="{len(header)}"><th>{th}</th>{body}</t>'
 
 
+def _data(items: dict[str, str]) -> str:
+    return "".join(f'<data name="{k}" pn="true">{v}</data>' for k, v in items.items())
+
+
+# --- Chi tiết từng AP (`show ap …` với ip=<AP>), hình dạng đo trên Instant 8.10 (2026-11-20), số giả.
+# "espressif" (aa:..:03) đang bám AP Ngu với SNR 12 nhưng AP Khach nghe nó 30 ⇒ louder_ap.
+BSSID = {MASTER: ("02:00:00:00:01:0", "02:00:00:00:01:1"), MEMBER: ("02:00:00:00:02:0", "02:00:00:00:02:1")}
+AP_NAME = {MASTER: "AP Khach", MEMBER: "AP Ngu"}
+
+
+def detail_show(ip: str, cmd: str, tick: int) -> str:
+    b24, b5 = BSSID[ip]
+    name = AP_NAME[ip]
+    ch24, ch5 = ("6", "44+") if ip == MASTER else ("1", "100E")
+    if cmd == "show ap bss-table":
+        return _table(
+            "Aruba AP BSS Table",
+            ["bss", "ess", "port", "ip", "band/ht-mode/bandwidth", "ch/EIRP/max-EIRP", "type", "cur-cl", "ap name", "in-t(s)", "tot-t", "flags"],
+            [
+                [b24, "IoT", "?/?", ip, "2.4GHz/HT/20MHz", f"{ch24}/24.0/25.0", "ap", "1", name, "0", "2d:0h:0m:0s", ""],
+                [b5, "Home", "?/?", ip, "5GHz/VHT/40MHz", f"{ch5.rstrip('+E')}/22.0/22.0", "ap", "1", name, "0", "2d:0h:0m:0s", ""],
+            ],
+        )
+    if cmd == "show ap-env":
+        return _data({"wifi0_arm_channel": ch5, "wifi0_arm_power_10x": "22.0", "wifi1_arm_channel": ch24, "wifi1_arm_power_10x": "24.0"})
+    if cmd.startswith("show ap debug radio-stats"):
+        idx = cmd[-1]
+        resets = "9" if (ip == MEMBER and idx == "1") else "1"  # AP Ngu 2.4 GHz: 9 lần / 2 ngày
+        frames, retried = 1000 + 1000 * tick, 50 + (400 * tick if ip == MEMBER else 20 * tick)
+        rows = [["Channel Busy 64s", "17"], ["Tx Frames Transmitted", str(frames)], ["Tx Data Transmitted Retried", str(retried)],
+                ["Total Radio Resets", resets], ["Tx Time BC/MC Data", "10"], ["Tx Time Data Transmitted", "100"]]  # fmt: skip
+        return _table("RADIO Stats", ["Parameter", "Value"], rows)
+    if cmd == "show ap debug client-table":
+        rows = [r for r in CLIENTS if r[5] == name]
+        hdr = ["MAC", "ESSID", "BSSID", "HT_State", "Tx_Pkts", "Tx_Retries", "Tx_Rate", "Rx_Rate", "Client health (C/R)", "Tx_Bytes", "Rx_Bytes"]
+        out = []
+        for r in rows:
+            vht = "cAWvSsEeBbM" if r[0] == "iPhone" else "AWSsBbM"
+            out.append([r[2], r[4], b24, vht, str(100 + 100 * tick), str(10 + 60 * tick), "58", "24", "100/90", str(1000 * (1 + tick)), str(500 * (1 + tick))])
+        return _table("Client Table", hdr, out)
+    if cmd == "show ap virtual-beacon-report":
+        rows = [["aa:bb:cc:00:00:03", "Normal", "0", "0", "Yes" if ip == MEMBER else "No", f"{b24} (Local 1)", "12" if ip == MEMBER else "30", "0s"]]
+        return _table("Virtual Beacon Table", ["Station", "CM State", "Triggered", "Succeeded", "Owner", "AP", "RSSI", "Received"], rows)
+    if cmd == "show ap monitor ap-list":
+        hdr = ["bssid", "essid", "band/chan/ch-width/ht-type", "encr", "curr-rssi"]
+        return _table("Monitored AP Table", hdr, [["0e:00:00:00:00:01", "SetupAP", f"2.4GHz/{ch24}/20MHz/HT", "open", "48"]])
+    return ""
+
+
 class FakeCluster:
     """Hành vi swarm.cgi: master trả đủ AP; member trả "0 Access Point"; sid hỏng → lỗi."""
 
@@ -70,8 +119,14 @@ class FakeCluster:
         self.logins: list[str] = []
         self.logouts: list[str] = []
         self.calls: list[tuple[str, str]] = []
+        self.detail_calls: list[str] = []  # ip của mỗi lượt đọc chi tiết
+        self.detail_tick = 0  # tăng để bộ đếm cộng dồn lớn dần giữa hai lượt
+        self.detail_down: set[str] = set()  # ip trả lỗi khi đọc chi tiết
 
-    def show(self, host: str, cmd: str) -> str:
+    def show(self, host: str, cmd: str, ip: str = "127.0.0.1") -> str:
+        if cmd.startswith("show ap"):
+            target = self.master if ip == "127.0.0.1" else ip
+            return detail_show(target, cmd, self.detail_tick)
         if cmd == "show aps":
             rows = APS if host == self.master else []
             return _table(f"{len(rows)} Access Points", AP_HEADER, rows)
@@ -117,12 +172,19 @@ class FakeCluster:
                 text="<?xml version='1.0'?><re><error>Invalid Session ID</error></re>",
             )
         cmds = q.get("cmd", "").split("\n")
+        ip = q.get("ip", "127.0.0.1")
         self.calls.append((host, q.get("cmd", "")))
+        if cmds[0].startswith("show ap "):
+            self.detail_calls.append(ip)
+            if ip in self.detail_down:
+                return AiohttpClientMockResponse(
+                    method, url, text="<?xml version='1.0'?><re><error>AP not reachable</error></re>"
+                )
         if len(cmds) == 1:
-            body = self.show(host, cmds[0])
+            body = self.show(host, cmds[0], ip)
         else:
             body = "".join(
-                f'<output command="{c}">{self.show(host, c)}</output>' for c in cmds
+                f'<output command="{c}">{self.show(host, c, ip)}</output>' for c in cmds
             )
         return AiohttpClientMockResponse(
             method, url, text=f"<?xml version='1.0'?><re>{body}</re>"

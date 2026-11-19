@@ -65,6 +65,25 @@ Mỗi mục trong `clients`: `name` (comment DHCP lease nếu có, không thì h
 `essid`, `ap`, `channel`, `band` (`2.4` / `5`), `phy` (`GN`, `AC`…), `signal`, `quality` (`good` / `ok` / `poor`),
 `speed_mbps`.
 
+### Chi tiết từng AP và thiết bị (5 phút/lần)
+
+Mỗi 5 phút integration hỏi thêm từng AP (qua master, tham số `ip=`, vẫn chỉ đọc): bảng client, virtual
+beacon report, thống kê radio, BSS, ap-env, AP hàng xóm. Một AP lỗi không làm hỏng lần cập nhật chính:
+AP đó giữ số cũ kèm `stale: true`. Các khoá dưới đây **chỉ thêm vào**, có thể vắng (bản firmware khác,
+AP lỗi); khoá cũ không đổi.
+
+- Thêm vào mỗi client: `retry_pct` (tỉ lệ phát lại từ lúc nối), `retry_5m` (trong 5 phút gần nhất, tính
+  từ chênh lệch bộ đếm), `tx_rate` / `rx_rate` (Mbps), `tx_kbps` / `rx_kbps` (lưu lượng 5 phút gần nhất),
+  `health` (nguyên văn cột `Client health (C/R)` của AP), `stuck_24` (máy có 5 GHz đang ở 2,4 GHz trên
+  SSID có phát 5 GHz), `louder_ap` + `louder_gain` (AP khác nghe máy này mạnh hơn ≥ 10 dB khi máy đang
+  yếu — "nghe to hơn", không phải nơi chắc chắn nó sẽ tới).
+- Thêm vào mỗi radio trong `aps.*.radios`: `busy_64s`, `retry_pct`, `retry_5m`, `resets`,
+  `resets_per_day`, `bcmc_pct`, `pinned`, `set_channel`, `set_power`, `cochannel` (số AP lạ cùng kênh),
+  `cochannel_loudest` (dBm). Thêm vào mỗi AP: `uptime_s`, `stale`.
+- Thuộc tính mới của sensor: `alerts` (danh sách `{code, …}`: `radio_resets`, `radio_retry`,
+  `open_network`, `louder_ap`, `stuck_24`, `detail_failed`) và `detail_updated` (thời điểm đọc chi tiết).
+  Không ghi vào recorder.
+
 Card hiển thị danh sách này đi kèm [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
 (`custom:lan-wifi-card`).
 

@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 
 from . import ArubaConfigEntry
 
-TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "serial", "mac", "ip", "hostname", "name"}
+TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "serial", "mac", "ip", "hostname", "name", "ssid", "detail", "counters"}
 
 
 async def async_get_config_entry_diagnostics(

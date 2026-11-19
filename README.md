@@ -65,6 +65,24 @@ Each item of `clients`: `name` (DHCP lease comment if available, else host name)
 `essid`, `ap`, `channel`, `band` (`2.4` / `5`), `phy` (`GN`, `AC`…), `signal`, `quality` (`good` / `ok` / `poor`),
 `speed_mbps`.
 
+### Per-AP and per-device detail (every 5 minutes)
+
+Every 5 minutes the integration also asks each AP (through the master, `ip=` parameter, still read-only)
+for its client table, virtual beacon report, radio statistics, BSS table, ap-env and neighbour list. One
+failing AP never fails the main update: it keeps its previous numbers with `stale: true`. The keys below
+are **additive** and may be missing (other firmware, failing AP); existing keys are unchanged.
+
+- Added to each client: `retry_pct` (retransmit share since association), `retry_5m` (last 5 minutes,
+  from counter deltas), `tx_rate` / `rx_rate` (Mbps), `tx_kbps` / `rx_kbps` (traffic over the last
+  5 minutes), `health` (raw `Client health (C/R)` from the AP), `stuck_24` (5 GHz-capable device on 2.4 GHz
+  of an SSID that offers 5 GHz), `louder_ap` + `louder_gain` (another AP hears this weak device ≥ 10 dB
+  louder — "heard louder", not where it will necessarily go).
+- Added to each radio in `aps.*.radios`: `busy_64s`, `retry_pct`, `retry_5m`, `resets`, `resets_per_day`,
+  `bcmc_pct`, `pinned`, `set_channel`, `set_power`, `cochannel` (foreign BSS on the same channel),
+  `cochannel_loudest` (dBm). Added to each AP: `uptime_s`, `stale`.
+- New sensor attributes: `alerts` (list of `{code, …}`: `radio_resets`, `radio_retry`, `open_network`,
+  `louder_ap`, `stuck_24`, `detail_failed`) and `detail_updated` (when the detail was read). Not recorded.
+
 A dashboard card for this list ships with [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
 (`custom:lan-wifi-card`).
 

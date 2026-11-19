@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import time
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
@@ -12,9 +14,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import ArubaApiError, ArubaAuthError, ArubaInstantApi, Table
-from .const import CMD_APS, CMD_CLIENTS, DOMAIN, LEASE_SOURCE_DOMAIN
+from .const import CMD_APS, CMD_CLIENTS, DOMAIN, LEASE_SOURCE_DOMAIN, REQUEST_TIMEOUT
+from .detail import DETAIL_COMMANDS, DETAIL_INTERVAL, Detail, compute, parse_outputs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,6 +104,9 @@ class Client:
 class WifiData:
     aps: dict[str, AccessPoint] = field(default_factory=dict)
     clients: list[Client] = field(default_factory=list)
+    # Chi tiết từng AP/thiết bị, đọc mỗi DETAIL_INTERVAL giây (có thể cũ hơn dữ liệu chính).
+    detail: Detail | None = None
+    detail_updated: str | None = None
 
     def ssids(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -210,6 +217,8 @@ class ArubaCoordinator(DataUpdateCoordinator[WifiData]):
         self.api = api
         self.cluster: str = entry.title
         self.cluster_id: str = entry.unique_id or entry.entry_id
+        self._detail: Detail | None = None
+        self._detail_updated: str | None = None
 
     async def _async_update_data(self) -> WifiData:
         try:
@@ -218,7 +227,50 @@ class ArubaCoordinator(DataUpdateCoordinator[WifiData]):
             raise ConfigEntryAuthFailed(str(err)) from err
         except ArubaApiError as err:
             raise UpdateFailed(str(err)) from err
-        return WifiData(
+        data = WifiData(
             aps=parse_aps(result.get(CMD_APS)),
             clients=parse_clients(result.get(CMD_CLIENTS), lease_names(self.hass)),
         )
+        now = time.monotonic()
+        if self._detail is None or now - self._detail.at >= DETAIL_INTERVAL:
+            await self._read_detail(data, now)
+        data.detail = self._detail
+        data.detail_updated = self._detail_updated
+        return data
+
+    async def _read_detail(self, data: WifiData, now: float) -> None:
+        """Đọc chi tiết từng AP (qua master, `ip=`). Lỗi một AP không bao giờ làm hỏng lần cập nhật:
+        AP đó giữ số cũ (đánh dấu `stale`), cảnh báo `detail_failed`."""
+        per_ap: dict[str, Any] = {}
+        failed: list[str] = []
+        for ap in data.aps.values():
+            if not ap.ip:
+                continue
+            try:
+                text = await asyncio.wait_for(
+                    self.api.show_ap_raw(ap.ip, DETAIL_COMMANDS), REQUEST_TIMEOUT
+                )
+            except (ArubaApiError, TimeoutError) as err:
+                _LOGGER.debug("aruba: chi tiết %s lỗi: %s", ap.name, err)
+                failed.append(ap.name)
+                continue
+            per_ap[ap.name] = parse_outputs(text, DETAIL_COMMANDS)
+        if not per_ap:
+            return  # giữ nguyên chi tiết cũ (nếu có)
+        clients = [
+            {
+                "mac": c.mac,
+                "ap": c.ap,
+                "band": c.band,
+                "signal": c.signal,
+                "essid": c.essid,
+            }
+            for c in data.clients
+        ]
+        detail = compute(per_ap, clients, self._detail, now, failed)
+        if self._detail:
+            for name in failed:
+                if name in self._detail.aps:
+                    detail.aps[name] = {**self._detail.aps[name], "stale": True}
+        self._detail = detail
+        self._detail_updated = dt_util.utcnow().isoformat(timespec="seconds")
