@@ -124,7 +124,7 @@ class FakeCluster:
         self.detail_down: set[str] = set()  # ip trả lỗi khi đọc chi tiết
 
     def show(self, host: str, cmd: str, ip: str = "127.0.0.1") -> str:
-        if cmd.startswith("show ap"):
+        if cmd.startswith(("show ap ", "show ap-")):
             target = self.master if ip == "127.0.0.1" else ip
             return detail_show(target, cmd, self.detail_tick)
         if cmd == "show aps":
