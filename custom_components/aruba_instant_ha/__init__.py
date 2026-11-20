@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_PORT, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .api import ArubaInstantApi
 from .const import (
@@ -24,6 +28,36 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 type ArubaConfigEntry = ConfigEntry[ArubaCoordinator]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Thẻ Lovelace đi kèm integration: phục vụ tệp JS trong frontend/ và tự nạp vào frontend ⇒ cài integration
+# là dùng được `type: custom:aruba-wifi-card`, không cần thêm resource. `?v=` = phiên bản để trình duyệt
+# bỏ bản cũ khi nâng cấp.
+CARD_FILE = Path(__file__).parent / "frontend" / "aruba-wifi-card.js"
+CARD_URL = f"/{DOMAIN}/aruba-wifi-card.js"
+_CARD_KEY = f"{DOMAIN}_card_registered"
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    await async_register_card(hass)
+    return True
+
+
+async def async_register_card(hass: HomeAssistant) -> bool:
+    """Đăng ký thẻ một lần. Không có http/frontend (vd khi test) thì bỏ qua, không lỗi."""
+    if hass.data.get(_CARD_KEY):
+        return True
+    if getattr(hass, "http", None) is None or "frontend" not in hass.config.components:
+        return False
+    from homeassistant.components.frontend import add_extra_js_url
+    from homeassistant.components.http import StaticPathConfig
+
+    integration = await async_get_integration(hass, DOMAIN)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL, str(CARD_FILE), cache_headers=True)]
+    )
+    add_extra_js_url(hass, f"{CARD_URL}?v={integration.version}")
+    hass.data[_CARD_KEY] = True
+    return True
 
 
 def parse_hosts(value: str | list[str]) -> list[str]:

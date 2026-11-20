@@ -84,8 +84,28 @@ AP lỗi); khoá cũ không đổi.
   `open_network`, `louder_ap`, `stuck_24`, `detail_failed`) và `detail_updated` (thời điểm đọc chi tiết).
   Không ghi vào recorder.
 
-Card hiển thị danh sách này đi kèm [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
-(`custom:lan-wifi-card`).
+## Thẻ Wi-Fi (đi kèm từ 0.3.0)
+
+Cài integration là có luôn thẻ `custom:aruba-wifi-card`: integration tự phục vụ tệp JS và tự nạp vào frontend,
+**không cần thêm resource**, thẻ luôn cùng phiên bản với integration (sau khi nâng cấp, tải lại trang).
+
+```yaml
+type: custom:aruba-wifi-card
+entity: sensor.aruba_instant_clients   # sensor "Thiết bị Wi-Fi" của cụm
+title: Wi-Fi
+group_by: ap      # ap | ssid | band
+sort: name        # name | signal (yếu trước) | speed
+```
+
+- Mỗi AP: kênh + % thời gian kênh bận từng radio, `↻ %` phát lại, `⟳ reset …/ngày`, thời gian chạy, cảnh báo
+  hai AP trùng kênh. Chip lọc SSID / băng tần.
+- Hàng cảnh báo cụm (radio reset nhiều, phát lại cao, mạng mở lạ, máy bám AP xa…).
+- Mỗi thiết bị: vạch sóng, băng tần, tốc độ, SNR; tối đa 2 huy hiệu (`→T3 +37` AP khác nghe to hơn, `↻44%` phát
+  lại 5 phút gần nhất ≥ 30 %, `5G?` máy có 5 GHz ở 2,4 GHz). **Chạm một ô** để mở chi tiết.
+- Khoá khác: `ssid`, `band` (lọc ban đầu), `collapse` (`auto` / `true` / `false`), `language`.
+
+Thẻ này trước nằm trong [lan-topo-card](https://github.com/ngoviet/lan-topo-card) với tên `custom:lan-wifi-card`;
+tên cũ vẫn chạy ở lan-topo-card một thời gian, nên đổi dashboard sang `custom:aruba-wifi-card`.
 
 ## Xử lý sự cố
 
