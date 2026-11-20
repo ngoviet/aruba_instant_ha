@@ -83,8 +83,29 @@ are **additive** and may be missing (other firmware, failing AP); existing keys 
 - New sensor attributes: `alerts` (list of `{code, …}`: `radio_resets`, `radio_retry`, `open_network`,
   `louder_ap`, `stuck_24`, `detail_failed`) and `detail_updated` (when the detail was read). Not recorded.
 
-A dashboard card for this list ships with [lan-topo-card](https://github.com/ngoviet/lan-topo-card)
-(`custom:lan-wifi-card`).
+## Wi-Fi card (bundled since 0.3.0)
+
+Installing the integration also gives you `custom:aruba-wifi-card`: the integration serves the JS file and loads it
+into the frontend itself, **no resource to add**, and the card always matches the integration version (reload the
+page after upgrading).
+
+```yaml
+type: custom:aruba-wifi-card
+entity: sensor.aruba_instant_clients   # the cluster's "Clients" sensor
+title: Wi-Fi
+group_by: ap      # ap | ssid | band
+sort: name        # name | signal (weakest first) | speed
+```
+
+- Per AP: channel and channel-busy % of each radio, `↻ %` retry, `⟳ resets/day`, uptime, warning when two APs share
+  a channel. Chips filter by SSID / band.
+- Cluster alert row (radio resets often, high retry, strong open network, devices on a far AP…).
+- Per device: signal bars, band, speed, SNR; at most 2 badges (`→T3 +37` another AP hears it louder, `↻44%` retry
+  over the last 5 minutes ≥ 30 %, `5G?` 5 GHz-capable device on 2.4 GHz). **Tap a tile** for the detail panel.
+- Other keys: `ssid`, `band` (initial filter), `collapse` (`auto` / `true` / `false`), `language`.
+
+This card used to live in [lan-topo-card](https://github.com/ngoviet/lan-topo-card) as `custom:lan-wifi-card`; the
+old name keeps working there for a while — switch dashboards to `custom:aruba-wifi-card`.
 
 ## Troubleshooting
 

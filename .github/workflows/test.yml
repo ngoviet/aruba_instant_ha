@@ -31,3 +31,15 @@ jobs:
 
       - name: Run the test suite
         run: pytest -q
+
+  card:
+    name: Card (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      # Thẻ aruba-wifi-card đi kèm integration: không bước build, test phần logic thuần.
+      - run: node --check custom_components/aruba_instant_ha/frontend/aruba-wifi-card.js
+      - run: node --test tests/js/*.test.mjs
